@@ -329,11 +329,11 @@ class SpellingChecker(BaseTokenChecker):
 
     def _check_spelling(self, msgid: str, line: str, line_num: int) -> None:
         original_line = line
-        try:
-            # The mypy warning is caught by the except statement
-            initial_space = re.search(r"^\s+", line).regs[0][1]  # type: ignore[union-attr]
-        except (IndexError, AttributeError):
+        result = re.search(r"^[^\S]\s*", line)
+        if result is None:
             initial_space = 0
+        else:
+            initial_space = result.regs[0][1]
         if line.strip().startswith("#") and "docstring" not in msgid:
             line = line.strip()[1:]
             # A ``Filter`` cannot determine if the directive is at the beginning of a line,

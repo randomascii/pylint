@@ -1,0 +1,5 @@
+# This test will be skipped if there is no en_GB dictionary installed
+
+[SPELLING]
+spelling-dict=en_GB
+spelling-private-dict-file=tests/functional/s/spelling/.test_spelling_dict.txt

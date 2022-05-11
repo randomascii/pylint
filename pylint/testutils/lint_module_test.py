@@ -18,6 +18,7 @@ import pytest
 from _pytest.config import Config
 
 from pylint import checkers
+from pylint.config.config_file_parser import _ConfigurationFileParser
 from pylint.config.config_initialization import _config_initialization
 from pylint.constants import IS_PYPY
 from pylint.lint import PyLinter
@@ -99,9 +100,36 @@ class LintModuleTest:
             "--exclude_from_minimal_messages_config", default=False
         )
 
-        _config_initialization(
-            self._linter, args_list=args, config_file=rc_file, reporter=_test_reporter
-        )
+        try:
+            _config_initialization(
+                self._linter,
+                args_list=args,
+                config_file=rc_file,
+                reporter=_test_reporter,
+            )
+        except SystemExit as exc:
+            # If the exit occurs because of a missing spelling dictionary
+            # we just skip the test
+            config_file_parser = _ConfigurationFileParser(False, self._linter)
+            config_data, _ = config_file_parser.parse_config_file(
+                file_path=Path(rc_file)
+            )
+            if "spelling-dict" in config_data:
+                # Check if the exit came from the spelling-dict option
+                try:
+                    self._linter._arg_parser.parse_known_args(
+                        ["--spelling-dict", config_data["spelling-dict"]]
+                    )
+                except SystemExit as exc_two:
+                    if exc_two.code == 2:
+                        pytest.skip(
+                            f"Need the {config_data['spelling-dict']}"
+                            "enchant dictionary installed for this test."
+                        )
+                    else:
+                        raise exc  # pylint: disable=raise-missing-from
+            else:
+                raise exc
 
         self._check_end_position = (
             sys.version_info >= self._linter.config.min_pyver_end_position
